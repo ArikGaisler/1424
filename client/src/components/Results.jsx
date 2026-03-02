@@ -1,8 +1,9 @@
 import Confetti from './Confetti';
 
 export default function Results({ socket }) {
-  const { gameState, playerId, playAgain } = socket;
-  const isHost = gameState.players.find(p => p.id === playerId)?.isHost;
+  const { gameState, playerId, playAgain, error } = socket;
+  const isWaiting = gameState.waitingPlayers?.some(p => p.id === playerId);
+  const isHost = !isWaiting && gameState.players.find(p => p.id === playerId)?.isHost;
   const scores = gameState.finalScores || [];
   const winner = scores[0];
   const hasQualifiedWinner = winner?.qualified;
@@ -54,12 +55,15 @@ export default function Results({ socket }) {
         </div>
       )}
 
+      {error && <div className="error">{error}</div>}
+
       {isHost && (
         <button className="btn btn-primary btn-large" onClick={playAgain}>
           Play Again
         </button>
       )}
-      {!isHost && <p className="waiting-text">Waiting for host to start next round...</p>}
+      {!isHost && !isWaiting && <p className="waiting-text">Waiting for host to start next round...</p>}
+      {isWaiting && <p className="waiting-text">You'll join the next round automatically</p>}
     </div>
   );
 }
