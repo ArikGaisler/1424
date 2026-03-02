@@ -146,6 +146,30 @@ io.on('connection', (socket) => {
     broadcastGameState(game);
   });
 
+  socket.on('leave-game', ({ token }, cb) => {
+    const entry = tokenMap.get(token);
+    if (!entry) return cb({ error: 'Not in a game' });
+    const game = getGame(entry.code);
+    if (!game) return cb({ error: 'Game not found' });
+
+    if (game.disconnectTimers[token]) {
+      clearTimeout(game.disconnectTimers[token]);
+      delete game.disconnectTimers[token];
+    }
+
+    const remaining = game.removePlayer(token);
+    socket.leave(game.code);
+    tokenMap.delete(token);
+
+    if (remaining === 0) {
+      removeGame(game.code);
+    } else {
+      broadcastGameState(game);
+    }
+
+    cb({ success: true });
+  });
+
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
 

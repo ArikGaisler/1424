@@ -169,6 +169,11 @@ body {
   font-size: 1.1rem;
 }
 
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+
 /* --- Lobby --- */
 .lobby {
   display: flex;

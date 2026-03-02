@@ -96,11 +96,12 @@ export function useSocket() {
   const stopTurn = useCallback(() => emit('stop-turn', { token }), [emit, token]);
   const playAgain = useCallback(() => emit('play-again', { token }), [emit, token]);
 
-  const leaveGame = useCallback(() => {
+  const leaveGame = useCallback(async () => {
+    await emit('leave-game', { token });
     clearRoom();
     setGameState(null);
     setError(null);
-  }, []);
+  }, [emit, token]);
 
   return {
     connected,

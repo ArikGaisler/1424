@@ -4,7 +4,7 @@ import Scoreboard from './Scoreboard';
 import { hasRequiredDice } from '../game/logic';
 
 export default function GameBoard({ socket, spectating }) {
-  const { gameState, playerId, error, rollDice, keepDice, stopTurn } = socket;
+  const { gameState, playerId, error, rollDice, keepDice, stopTurn, leaveGame } = socket;
   const [selectedIndices, setSelectedIndices] = useState([]);
   const [rolling, setRolling] = useState(false);
 
@@ -49,6 +49,7 @@ export default function GameBoard({ socket, spectating }) {
       <div className="game-header">
         <span className="room-badge">Room: {gameState.code}</span>
         <span className="round-badge">Round {gameState.round}</span>
+        <button className="btn btn-ghost btn-small" onClick={leaveGame}>Leave</button>
       </div>
 
       {spectating && (
