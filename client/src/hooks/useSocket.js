@@ -28,6 +28,7 @@ export function useSocket() {
   const [connected, setConnected] = useState(false);
   const [gameState, setGameState] = useState(null);
   const [error, setError] = useState(null);
+  const [messages, setMessages] = useState([]);
 
   const token = tokenRef.current;
 
@@ -56,6 +57,10 @@ export function useSocket() {
     socket.on('game-state', (state) => {
       setGameState(state);
       setError(null);
+    });
+
+    socket.on('chat-message', (msg) => {
+      setMessages(prev => [...prev.slice(-99), msg]);
     });
 
     return () => {
@@ -96,10 +101,13 @@ export function useSocket() {
   const stopTurn = useCallback(() => emit('stop-turn', { token }), [emit, token]);
   const playAgain = useCallback(() => emit('play-again', { token }), [emit, token]);
 
+  const sendMessage = useCallback((message) => emit('chat-message', { token, message }), [emit, token]);
+
   const leaveGame = useCallback(async () => {
     await emit('leave-game', { token });
     clearRoom();
     setGameState(null);
+    setMessages([]);
     setError(null);
   }, [emit, token]);
 
@@ -118,5 +126,7 @@ export function useSocket() {
     playAgain,
     leaveGame,
     clearRoom,
+    messages,
+    sendMessage,
   };
 }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import Dice from './Dice';
 import Scoreboard from './Scoreboard';
+import Leaderboard from './Leaderboard';
 import { hasRequiredDice } from '../game/logic';
 
 export default function GameBoard({ socket, spectating }) {
@@ -141,6 +142,7 @@ export default function GameBoard({ socket, spectating }) {
         myId={playerId}
         waitingPlayers={gameState.waitingPlayers}
       />
+      <Leaderboard leaderboard={gameState.leaderboard} myId={playerId} />
     </div>
   );
 }

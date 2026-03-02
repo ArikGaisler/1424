@@ -52,6 +52,7 @@ class Game {
     this.turns = {};
     this.scores = {};
     this.finalScores = [];
+    this.wins = {};
     this.disconnectTimers = {};
   }
 
@@ -70,15 +71,57 @@ class Game {
   }
 
   removePlayer(token) {
-    this.players = this.players.filter(p => p.id !== token);
-    this.waitingPlayers = this.waitingPlayers.filter(p => p.id !== token);
     if (this.disconnectTimers[token]) {
       clearTimeout(this.disconnectTimers[token]);
       delete this.disconnectTimers[token];
     }
+
+    const wasWaiting = this.waitingPlayers.some(p => p.id === token);
+    this.waitingPlayers = this.waitingPlayers.filter(p => p.id !== token);
+
+    if (wasWaiting || this.state !== 'playing') {
+      this.players = this.players.filter(p => p.id !== token);
+      if (token === this.hostId && this.players.length > 0) {
+        this.hostId = this.players[0].id;
+      }
+      return this.players.length + this.waitingPlayers.length;
+    }
+
+    const leavingIndex = this.players.findIndex(p => p.id === token);
+    if (leavingIndex === -1) return this.players.length + this.waitingPlayers.length;
+
+    const wasCurrentPlayer = leavingIndex === this.currentPlayerIndex;
+
+    if (this.turns[token]) {
+      this.turns[token].finished = true;
+      this.turns[token].score = { qualified: false, score: 0 };
+      this.scores[token] = { qualified: false, score: 0 };
+    }
+
+    this.players.splice(leavingIndex, 1);
+
     if (token === this.hostId && this.players.length > 0) {
       this.hostId = this.players[0].id;
     }
+
+    if (this.players.length <= 1) {
+      this._finishRound();
+      return this.players.length + this.waitingPlayers.length;
+    }
+
+    if (wasCurrentPlayer) {
+      if (this.currentPlayerIndex >= this.players.length) {
+        this.currentPlayerIndex = 0;
+      }
+    } else if (leavingIndex < this.currentPlayerIndex) {
+      this.currentPlayerIndex--;
+    }
+
+    const allDone = this.players.every(p => this.turns[p.id]?.finished);
+    if (allDone) {
+      this._finishRound();
+    }
+
     return this.players.length + this.waitingPlayers.length;
   }
 
@@ -200,13 +243,18 @@ class Game {
     this.finalScores = this.players.map(p => ({
       id: p.id,
       name: p.name,
-      keptDice: this.turns[p.id].keptDice,
-      ...this.scores[p.id],
+      keptDice: this.turns[p.id]?.keptDice || [],
+      ...(this.scores[p.id] || { qualified: false, score: 0 }),
     })).sort((a, b) => {
       if (a.qualified && !b.qualified) return -1;
       if (!a.qualified && b.qualified) return 1;
       return b.score - a.score;
     });
+
+    const winner = this.finalScores[0];
+    if (winner?.qualified) {
+      this.wins[winner.id] = (this.wins[winner.id] || 0) + 1;
+    }
   }
 
   _promoteWaitingPlayers() {
@@ -246,6 +294,9 @@ class Game {
       currentPlayerId: currentPlayer ? currentPlayer.id : null,
       finalScores: this.finalScores,
       waitingPlayers: this.waitingPlayers.map(p => ({ id: p.id, name: p.name, disconnected: p.disconnected })),
+      leaderboard: [...this.players, ...this.waitingPlayers]
+        .map(p => ({ id: p.id, name: p.name, wins: this.wins[p.id] || 0 }))
+        .sort((a, b) => b.wins - a.wins),
     };
   }
 }

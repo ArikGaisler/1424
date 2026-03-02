@@ -146,6 +146,28 @@ io.on('connection', (socket) => {
     broadcastGameState(game);
   });
 
+  socket.on('chat-message', ({ token, message }, cb) => {
+    const entry = tokenMap.get(token);
+    if (!entry) return cb({ error: 'Not in a game' });
+    const game = getGame(entry.code);
+    if (!game) return cb({ error: 'Game not found' });
+
+    const player = game.players.find(p => p.id === token) ||
+                   game.waitingPlayers.find(p => p.id === token);
+    if (!player) return cb({ error: 'Not in this game' });
+
+    const text = message?.trim().slice(0, 200);
+    if (!text) return cb({ error: 'Empty message' });
+
+    io.to(game.code).emit('chat-message', {
+      name: player.name,
+      text,
+      timestamp: Date.now(),
+    });
+
+    cb({ success: true });
+  });
+
   socket.on('leave-game', ({ token }, cb) => {
     const entry = tokenMap.get(token);
     if (!entry) return cb({ error: 'Not in a game' });

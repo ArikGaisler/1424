@@ -1,4 +1,5 @@
 import Confetti from './Confetti';
+import Leaderboard from './Leaderboard';
 
 export default function Results({ socket }) {
   const { gameState, playerId, playAgain, leaveGame, error } = socket;
@@ -10,7 +11,7 @@ export default function Results({ socket }) {
 
   return (
     <div className="results">
-      {hasQualifiedWinner && <Confetti />}
+      {hasQualifiedWinner && winner.id === playerId && <Confetti />}
       <h1 className="title">Round {gameState.round} Results</h1>
 
       {winner && (
@@ -45,6 +46,8 @@ export default function Results({ socket }) {
           </div>
         ))}
       </div>
+
+      <Leaderboard leaderboard={gameState.leaderboard} myId={playerId} />
 
       {gameState.waitingPlayers?.length > 0 && (
         <div className="waiting-list">
