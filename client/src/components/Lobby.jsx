@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import HowToPlay from './HowToPlay';
-
-const BASE_URL = import.meta.env.VITE_BASE_URL || window.location.origin;
+import InviteButton from './InviteButton';
 
 export default function Lobby({ socket }) {
   const { gameState, playerId, error, setError, createGame, joinGame, startGame, leaveGame } = socket;
   const [playerName, setPlayerName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [view, setView] = useState('landing'); // landing | join
-  const [inviteStatus, setInviteStatus] = useState('idle'); // idle | copied
 
   const inRoom = gameState?.state === 'lobby';
   const isHost = gameState?.players?.find(p => p.id === playerId)?.isHost;
@@ -24,26 +22,6 @@ export default function Lobby({ socket }) {
     }
   }, []);
 
-  const buildInviteMessage = () => {
-    const link = `${BASE_URL}?room=${gameState.code}`;
-    return `${myName} is inviting you to play 1-4-24... join the game now! ${link}`;
-  };
-
-  const handleInvite = async () => {
-    const message = buildInviteMessage();
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: message });
-      } catch {
-        // user dismissed share sheet — no action needed
-      }
-    } else {
-      await navigator.clipboard.writeText(message);
-      setInviteStatus('copied');
-      setTimeout(() => setInviteStatus('idle'), 2000);
-    }
-  };
-
   if (inRoom) {
     return (
       <div className="lobby">
@@ -53,9 +31,7 @@ export default function Lobby({ socket }) {
             <span className="room-label">Room Code</span>
             <span className="room-code">{gameState.code}</span>
           </div>
-          <button className="btn btn-invite" onClick={handleInvite}>
-            {inviteStatus === 'copied' ? '✓ Copied!' : 'Invite Friends'}
-          </button>
+          <InviteButton gameCode={gameState.code} playerName={myName} />
           <div className="player-list">
             <h3>Players ({gameState.players.length})</h3>
             {gameState.players.map((p) => (

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import Dice from './Dice';
 import Scoreboard from './Scoreboard';
 import Leaderboard from './Leaderboard';
+import InviteButton from './InviteButton';
 import { hasRequiredDice } from '../game/logic';
 
 export default function GameBoard({ socket, spectating }) {
@@ -10,6 +11,7 @@ export default function GameBoard({ socket, spectating }) {
   const [rolling, setRolling] = useState(false);
 
   const currentPlayer = gameState.players.find(p => p.id === gameState.currentPlayerId);
+  const me = gameState.players.find(p => p.id === playerId) || gameState.waitingPlayers?.find(p => p.id === playerId);
   const isMyTurn = !spectating && gameState.currentPlayerId === playerId;
   const myTurnState = gameState.players.find(p => p.id === playerId)?.turnState;
   const activeTurn = currentPlayer?.turnState;
@@ -50,6 +52,7 @@ export default function GameBoard({ socket, spectating }) {
       <div className="game-header">
         <span className="room-badge">Room: {gameState.code}</span>
         <span className="round-badge">Round {gameState.round}</span>
+        <InviteButton gameCode={gameState.code} playerName={me?.name || 'Someone'} />
         <button className="btn btn-ghost btn-small" onClick={leaveGame}>Leave</button>
       </div>
 

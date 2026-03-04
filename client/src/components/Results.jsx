@@ -1,10 +1,12 @@
 import Confetti from './Confetti';
 import Leaderboard from './Leaderboard';
+import InviteButton from './InviteButton';
 
 export default function Results({ socket }) {
   const { gameState, playerId, playAgain, leaveGame, error } = socket;
   const isWaiting = gameState.waitingPlayers?.some(p => p.id === playerId);
   const isHost = !isWaiting && gameState.players.find(p => p.id === playerId)?.isHost;
+  const me = gameState.players.find(p => p.id === playerId) || gameState.waitingPlayers?.find(p => p.id === playerId);
   const scores = gameState.finalScores || [];
   const winner = scores[0];
   const hasQualifiedWinner = winner?.qualified;
@@ -57,6 +59,8 @@ export default function Results({ socket }) {
           ))}
         </div>
       )}
+
+      <InviteButton gameCode={gameState.code} playerName={me?.name || 'Someone'} />
 
       {error && <div className="error">{error}</div>}
 

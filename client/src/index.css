@@ -177,6 +177,13 @@ body {
   border-color: var(--success);
 }
 
+.game-header .btn-invite,
+.results .btn-invite {
+  width: auto;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+}
+
 .btn-large {
   padding: 16px 32px;
   font-size: 1.1rem;
