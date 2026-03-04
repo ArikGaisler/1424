@@ -165,6 +165,18 @@ body {
   color: var(--text);
 }
 
+.btn-invite {
+  background: rgba(82, 183, 136, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(82, 183, 136, 0.4);
+  width: 100%;
+}
+
+.btn-invite:hover {
+  background: rgba(82, 183, 136, 0.25);
+  border-color: var(--success);
+}
+
 .btn-large {
   padding: 16px 32px;
   font-size: 1.1rem;

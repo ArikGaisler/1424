@@ -1,14 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HowToPlay from './HowToPlay';
+
+const BASE_URL = import.meta.env.VITE_BASE_URL || window.location.origin;
 
 export default function Lobby({ socket }) {
   const { gameState, playerId, error, setError, createGame, joinGame, startGame, leaveGame } = socket;
   const [playerName, setPlayerName] = useState('');
   const [joinCode, setJoinCode] = useState('');
-  const [view, setView] = useState('landing'); // landing | create | join | waiting
+  const [view, setView] = useState('landing'); // landing | join
+  const [inviteStatus, setInviteStatus] = useState('idle'); // idle | copied
 
   const inRoom = gameState?.state === 'lobby';
   const isHost = gameState?.players?.find(p => p.id === playerId)?.isHost;
+  const myName = gameState?.players?.find(p => p.id === playerId)?.name;
+
+  // Read ?room= from URL and pre-fill join flow
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomCode = params.get('room');
+    if (roomCode && !inRoom) {
+      setJoinCode(roomCode.toUpperCase());
+      setView('join');
+    }
+  }, []);
+
+  const buildInviteMessage = () => {
+    const link = `${BASE_URL}?room=${gameState.code}`;
+    return `${myName} is inviting you to play 1-4-24... join the game now! ${link}`;
+  };
+
+  const handleInvite = async () => {
+    const message = buildInviteMessage();
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message });
+      } catch {
+        // user dismissed share sheet — no action needed
+      }
+    } else {
+      await navigator.clipboard.writeText(message);
+      setInviteStatus('copied');
+      setTimeout(() => setInviteStatus('idle'), 2000);
+    }
+  };
 
   if (inRoom) {
     return (
@@ -19,6 +53,9 @@ export default function Lobby({ socket }) {
             <span className="room-label">Room Code</span>
             <span className="room-code">{gameState.code}</span>
           </div>
+          <button className="btn btn-invite" onClick={handleInvite}>
+            {inviteStatus === 'copied' ? '✓ Copied!' : 'Invite Friends'}
+          </button>
           <div className="player-list">
             <h3>Players ({gameState.players.length})</h3>
             {gameState.players.map((p) => (
@@ -51,21 +88,31 @@ export default function Lobby({ socket }) {
 
   const handleCreate = async () => {
     if (!playerName.trim()) return setError('Enter your name');
-    const res = await createGame(playerName.trim());
-    if (res.success) setView('waiting');
+    await createGame(playerName.trim());
   };
 
   const handleJoin = async () => {
     if (!playerName.trim()) return setError('Enter your name');
     if (!joinCode.trim()) return setError('Enter a room code');
     const res = await joinGame(joinCode.trim().toUpperCase(), playerName.trim());
-    if (res.success) setView('waiting');
+    if (res.success) {
+      // Strip the ?room= param from the URL after joining
+      const url = new URL(window.location.href);
+      url.searchParams.delete('room');
+      window.history.replaceState({}, '', url.toString());
+    }
   };
+
+  // Determine if we arrived via an invite link
+  const isInviteFlow = view === 'join' && !!new URLSearchParams(window.location.search).get('room');
 
   return (
     <div className="lobby">
       <h1 className="title">1-4-24</h1>
-      <p className="subtitle">The Classic Dice Game</p>
+      {isInviteFlow
+        ? <p className="subtitle">You've been invited! Enter your name to join.</p>
+        : <p className="subtitle">The Classic Dice Game</p>
+      }
 
       {view === 'landing' && (
         <div className="card landing-card">
@@ -76,7 +123,7 @@ export default function Lobby({ socket }) {
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             maxLength={16}
-            onKeyDown={(e) => e.key === 'Enter' && playerName.trim() && setView('create')}
+            onKeyDown={(e) => e.key === 'Enter' && playerName.trim() && handleCreate()}
           />
           {error && <div className="error">{error}</div>}
           <button className="btn btn-primary" onClick={() => {
@@ -102,17 +149,34 @@ export default function Lobby({ socket }) {
         <div className="card">
           <input
             type="text"
+            className="input"
+            placeholder="Your name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            maxLength={16}
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && playerName.trim() && handleJoin()}
+          />
+          <input
+            type="text"
             className="input input-code"
             placeholder="Room code"
             value={joinCode}
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             maxLength={4}
-            autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
           />
           {error && <div className="error">{error}</div>}
           <button className="btn btn-primary" onClick={handleJoin}>Join</button>
-          <button className="btn btn-ghost" onClick={() => { setView('landing'); setError(null); }}>Back</button>
+          <button className="btn btn-ghost" onClick={() => {
+            setView('landing');
+            setError(null);
+            // Also clear pre-filled code if user backs out of invite flow
+            const url = new URL(window.location.href);
+            url.searchParams.delete('room');
+            window.history.replaceState({}, '', url.toString());
+            setJoinCode('');
+          }}>Back</button>
         </div>
       )}
     </div>
